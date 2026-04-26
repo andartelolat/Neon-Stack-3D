@@ -4,6 +4,7 @@ const BOARD_WIDTH := 10
 const BOARD_HEIGHT := 20
 const CELL_SIZE := 1.0
 const DROP_START := 0.72
+const LEVEL_SCORE_STEP := 650
 const MUSIC_PATH := "res://assets/music/voltaic_kevin_macleod_cc_by_3.mp3"
 
 const SHAPES := {
@@ -34,6 +35,7 @@ var next_kind := ""
 var score := 0
 var lines := 0
 var level := 1
+var next_level_score := LEVEL_SCORE_STEP
 var drop_timer := 0.0
 var game_over := false
 var paused := false
@@ -94,7 +96,7 @@ func _process(delta: float) -> void:
 		return
 
 	drop_timer += delta
-	var interval: float = maxf(0.08, DROP_START - float(level - 1) * 0.055)
+	var interval: float = _drop_interval()
 	if Input.is_key_pressed(KEY_S) or Input.is_key_pressed(KEY_DOWN):
 		interval *= 0.08
 	if drop_timer >= interval:
@@ -288,6 +290,7 @@ func _restart() -> void:
 	score = 0
 	lines = 0
 	level = 1
+	next_level_score = _score_needed_for_level(2)
 	drop_timer = 0.0
 	game_over = false
 	_set_paused(false)
@@ -345,6 +348,7 @@ func _hard_drop() -> void:
 	while _try_move(Vector2i(0, 1)):
 		dist += 1
 	score += dist * 2
+	_apply_score_rewards()
 	_lock_piece()
 	_play(drop_sound)
 
@@ -402,15 +406,11 @@ func _clear_lines() -> void:
 
 	var count := cleared.size()
 	lines += count
-	var old_level := level
-	level = 1 + int(lines / 10)
 	score += [0, 100, 300, 500, 800][count] * level
 	_update_hud()
 	_shake_camera(0.18 + count * 0.05)
 	_play(clear_sound)
-	if level != old_level:
-		_set_scenery(level - 1)
-		_play(level_sound)
+	_apply_score_rewards()
 
 
 func _update_active_visuals() -> void:
@@ -482,6 +482,32 @@ func _make_material(color: Color, alpha: float) -> StandardMaterial3D:
 		mat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 		mat.no_depth_test = alpha < 0.3
 	return mat
+
+
+func _drop_interval() -> float:
+	var speedup: float = pow(0.86, float(level - 1))
+	return maxf(0.055, DROP_START * speedup)
+
+
+func _score_needed_for_level(target_level: int) -> int:
+	var progress: int = maxi(target_level - 1, 1)
+	return int(float(LEVEL_SCORE_STEP) * pow(float(progress), 1.35))
+
+
+func _apply_score_rewards() -> void:
+	var leveled_up := false
+	while score >= next_level_score:
+		level += 1
+		next_level_score = _score_needed_for_level(level + 1)
+		leveled_up = true
+
+	if leveled_up:
+		_set_scenery(level - 1)
+		_background_flash(Color(0.95, 0.24, 1.0))
+		_burst(Vector3(0.0, 0.0, 0.85), Color(1.0, 0.4, 0.95), 120, 2.1)
+		_shake_camera(0.36)
+		_play(level_sound)
+	_update_hud()
 
 
 func _make_radial_texture(size: int, color: Color) -> Texture2D:
@@ -1232,7 +1258,7 @@ func _update_hud() -> void:
 	if lines_label != null:
 		lines_label.text = "LINES %02d" % lines
 	if level_label != null:
-		level_label.text = "LVL %02d" % level
+		level_label.text = "LVL %02d  NEXT %d" % [level, next_level_score]
 	if next_label != null:
 		next_label.text = "NEXT %s" % next_kind
 	if status_label == null:

@@ -20,6 +20,10 @@ Game bergaya Tetris 3D untuk Godot 4. Jalankan `project.godot`, lalu tekan Play.
 
 Game memakai musik `Voltaic` by Kevin MacLeod sebagai track utama, dengan fallback EDM procedural loop jika file audio tidak bisa diload.
 
+## Level
+
+Level naik otomatis saat skor melewati target berikutnya. Setiap level membuat blok jatuh lebih cepat dan mengganti background parallax.
+
 ## Asset
 
 Efek partikel memakai Kenney Particle Pack, lisensi CC0:
