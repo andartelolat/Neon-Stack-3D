@@ -1,0 +1,7 @@
+.godot/
+.import/
+*.tmp
+*.translation
+export_presets.cfg
+assets/kenney_particle_pack.zip
+assets/kenney_particle_pack/Unity samples/
